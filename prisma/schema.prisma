@@ -11,3 +11,45 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum InvoiceStatus {
+    DRAFT
+    ISSUED
+    PAID
+    CANCELLED
+}
+
+model Customer {
+  id String @id @default(uuid())
+  name String
+  email String @unique
+  createdAt DateTime @default(now())
+
+  invoices Invoice[]
+}
+
+model Invoice {
+  id String @id @default(uuid())
+  number String @unique
+  customerId String
+  status InvoiceStatus @default(DRAFT)
+  issueDate DateTime?
+  dueDate DateTime
+  totalCents Int
+  createdAt DateTime @default(now())
+
+  invoiceitem InvoiceItem[]
+
+  customer Customer @relation(fields: [customerId], references: [id])
+}
+
+model InvoiceItem {
+  id String @id @default(uuid())
+  invoiceId String
+  description String
+  quantity Int
+  unitPriceCents Int
+
+  invoice Invoice @relation (fields: [invoiceId], references: [id])
+}
+
