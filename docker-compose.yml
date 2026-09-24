@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: parshav
+      POSTGRES_PASSWORD: flick
+      POSTGRES_DB: invoicing
+    ports:
+      - "5432:5432"
