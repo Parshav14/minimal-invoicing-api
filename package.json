@@ -12,7 +12,7 @@
     "url": "git+https://github.com/Parshav14/minimal-invoicing-api.git"
   },
   "keywords": [],
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/Parshav14/minimal-invoicing-api/issues"
   },
