@@ -12,6 +12,9 @@
     "url": "git+https://github.com/Parshav14/minimal-invoicing-api.git"
   },
   "keywords": [],
+  "format": "prettier . --write",
+  "format:check": "prettier . --check",
+  "lint": "eslint .",
   "type": "module",
   "bugs": {
     "url": "https://github.com/Parshav14/minimal-invoicing-api/issues"
@@ -25,11 +28,15 @@
     "pg": "^8.23.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.2",
     "@types/pg": "^8.23.1",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.9",
     "prisma": "^7.10.0",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.1"
   }
 }
