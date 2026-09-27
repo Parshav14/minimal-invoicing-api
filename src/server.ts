@@ -6,6 +6,11 @@ import { prisma } from "./db.js";
 
 const app = express();
 
+import customerRoutes from "./routes/customerRoutes.js";
+
+app.use(express.json());
+app.use(customerRoutes);
+
 app.get("/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -15,12 +20,8 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-app.get("/customer", (req, res) => {
-  res.status(201).send("Hello, Customer!");
-});
-
 app.use("/", (req, res) => {
-  res.send("Hello, Welcome to the server!");
+  res.send("Hello, Welcome to the Minimal Envoicing API server!");
 });
 
 const server = http.createServer(app);
