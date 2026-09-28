@@ -3,13 +3,14 @@ import http from "http";
 import express from "express";
 
 import { prisma } from "./db.js";
+import customerRoutes from "./routes/customerRoutes.js";
+import invoiceRoutes from "./routes/invoiceRoutes.js";
 
 const app = express();
 
-import customerRoutes from "./routes/customerRoutes.js";
-
 app.use(express.json());
 app.use(customerRoutes);
+app.use(invoiceRoutes);
 
 app.get("/health", async (_req, res) => {
   try {
