@@ -160,3 +160,45 @@ export const getInvoices = async (
 
   return { invoices, total };
 };
+
+type UpdateInvoiceInput = {
+  dueDate?: string;
+  items?: InvoiceItemInput[];
+};
+
+export const updateInvoice = async (id: string, input: UpdateInvoiceInput) => {
+  return prisma.$transaction(async (tx) => {
+    const invoice = await tx.invoice.findUnique({ where: { id } });
+
+    if (!invoice) return null;
+
+    if (invoice.status !== "DRAFT") {
+      throw new Error("INVOICE_LOCKED");
+    }
+
+    const totalCents = input.items
+      ? input.items.reduce(
+          (total, item) => total + item.quantity * item.unitPriceCents,
+          0,
+        )
+      : invoice.totalCents;
+
+    return tx.invoice.update({
+      where: { id },
+      data: {
+        ...(input.dueDate && { dueDate: new Date(input.dueDate) }),
+        ...(input.items && {
+          totalCents,
+          invoiceitem: {
+            deleteMany: {},
+            create: input.items,
+          },
+        }),
+      },
+      include: {
+        invoiceitem: true,
+        customer: true,
+      },
+    });
+  });
+};

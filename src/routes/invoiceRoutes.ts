@@ -3,6 +3,7 @@ import {
   createInvoice,
   getInvoiceById,
   getInvoices,
+  updateInvoice
 } from "../services/invoiceService.js";
 
 const router = express.Router();
@@ -64,6 +65,45 @@ router.get("/invoices", async (req, res) => {
     limit,
     total,
   });
+});
+
+router.patch("/invoices/:id", async (req, res) => {
+  try {
+    const { dueDate, items } = req.body;
+
+    if (dueDate === undefined && items === undefined) {
+      return res.status(400).json({
+        error: "VALIDATION_ERROR",
+        message: "Provide dueDate or items",
+      });
+    }
+
+    const invoice = await updateInvoice(req.params.id, {
+      dueDate,
+      items,
+    });
+
+    if (!invoice) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Invoice not found",
+      });
+    }
+
+    res.status(200).json(invoice);
+  } catch (error) {
+    if (error instanceof Error && error.message === "INVOICE_LOCKED") {
+      return res.status(409).json({
+        error: "INVOICE_LOCKED",
+        message: "Invoice can only be updated in DRAFT status",
+      });
+    }
+
+    return res.status(500).json({
+      error: "INTERNAL_ERROR",
+      message: "Something went wrong",
+    });
+  }
 });
 
 export default router;
