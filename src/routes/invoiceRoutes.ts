@@ -3,7 +3,9 @@ import {
   createInvoice,
   getInvoiceById,
   getInvoices,
-  updateInvoice
+  updateInvoice,
+  updateInvoiceStatus,
+  deleteInvoice,
 } from "../services/invoiceService.js";
 
 const router = express.Router();
@@ -100,6 +102,114 @@ router.patch("/invoices/:id", async (req, res) => {
     }
 
     return res.status(500).json({
+      error: "INTERNAL_ERROR",
+      message: "Something went wrong",
+    });
+  }
+});
+
+router.post("/invoices/:id/issue", async (req, res) => {
+  try {
+    const invoice = await updateInvoiceStatus(req.params.id, "issue");
+
+    if (!invoice) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Invoice not found",
+      });
+    }
+
+    res.status(200).json(invoice);
+  } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_TRANSITION") {
+      return res.status(409).json({
+        error: "INVALID_TRANSITION",
+        message: "Invalid invoice status transition",
+      });
+    }
+
+    res.status(500).json({
+      error: "INTERNAL_ERROR",
+      message: "Something went wrong",
+    });
+  }
+});
+
+router.post("/invoices/:id/pay", async (req, res) => {
+  try {
+    const invoice = await updateInvoiceStatus(req.params.id, "pay");
+
+    if (!invoice) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Invoice not found",
+      });
+    }
+
+    res.status(200).json(invoice);
+  } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_TRANSITION") {
+      return res.status(409).json({
+        error: "INVALID_TRANSITION",
+        message: "Invalid invoice status transition",
+      });
+    }
+
+    res.status(500).json({
+      error: "INTERNAL_ERROR",
+      message: "Something went wrong",
+    });
+  }
+});
+
+router.post("/invoices/:id/cancel", async (req, res) => {
+  try {
+    const invoice = await updateInvoiceStatus(req.params.id, "cancel");
+
+    if (!invoice) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Invoice not found",
+      });
+    }
+
+    res.status(200).json(invoice);
+  } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_TRANSITION") {
+      return res.status(409).json({
+        error: "INVALID_TRANSITION",
+        message: "Invalid invoice status transition",
+      });
+    }
+
+    res.status(500).json({
+      error: "INTERNAL_ERROR",
+      message: "Something went wrong",
+    });
+  }
+});
+
+router.delete("/invoices/:id", async (req, res) => {
+  try {
+    const invoice = await deleteInvoice(req.params.id);
+
+    if (!invoice) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Invoice not found",
+      });
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    if (error instanceof Error && error.message === "INVOICE_LOCKED") {
+      return res.status(409).json({
+        error: "INVOICE_LOCKED",
+        message: "Invoice can only be deleted in DRAFT status",
+      });
+    }
+
+    res.status(500).json({
       error: "INTERNAL_ERROR",
       message: "Something went wrong",
     });

@@ -202,3 +202,57 @@ export const updateInvoice = async (id: string, input: UpdateInvoiceInput) => {
     });
   });
 };
+
+type InvoiceAction = "issue" | "pay" | "cancel";
+
+export const updateInvoiceStatus = async (
+  id: string,
+  action: InvoiceAction,
+) => {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id },
+  });
+
+  if (!invoice) return null;
+
+  if (
+    (action === "issue" && invoice.status !== "DRAFT") ||
+    (action === "pay" && invoice.status !== "ISSUED") ||
+    (action === "cancel" &&
+      invoice.status !== "DRAFT" &&
+      invoice.status !== "ISSUED")
+  ) {
+    throw new Error("INVALID_TRANSITION");
+  }
+
+  const status =
+    action === "issue" ? "ISSUED" : action === "pay" ? "PAID" : "CANCELLED";
+
+  return prisma.invoice.update({
+    where: { id },
+    data: {
+      status,
+      ...(action === "issue" && { issueDate: new Date() }),
+    },
+    include: {
+      invoiceitem: true,
+      customer: true,
+    },
+  });
+};
+
+export const deleteInvoice = async (id: string) => {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id },
+  });
+
+  if (!invoice) return null;
+
+  if (invoice.status !== "DRAFT") {
+    throw new Error("INVOICE_LOCKED");
+  }
+
+  await prisma.invoice.delete({
+    where: { id },
+  });
+};
