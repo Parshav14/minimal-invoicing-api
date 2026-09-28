@@ -108,3 +108,55 @@ export const createInvoice = async (input: CreateInvoiceInput) => {
 
   throw new Error("Invoice creation failed");
 };
+
+export const getInvoiceById = async (id: string) => {
+  return prisma.invoice.findUnique({
+    where: { id },
+    include: {
+      invoiceitem: true,
+      customer: true,
+    },
+  });
+};
+
+export const getInvoices = async (
+  page: number,
+  limit: number,
+  status?: "DRAFT" | "ISSUED" | "PAID" | "CANCELLED",
+  customerId?: string,
+  from?: string,
+  to?: string,
+) => {
+  const skip = (page - 1) * limit;
+
+  const where = {
+    ...(status && { status }),
+    ...(customerId && { customerId }),
+    ...(from || to
+      ? {
+          issueDate: {
+            ...(from && { gte: new Date(`${from}T00:00:00.000Z`) }),
+            ...(to && { lte: new Date(`${to}T23:59:59.999Z`) }),
+          },
+        }
+      : {}),
+  };
+
+  const [invoices, total] = await Promise.all([
+    prisma.invoice.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        invoiceitem: true,
+        customer: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    prisma.invoice.count({ where }),
+  ]);
+
+  return { invoices, total };
+};
