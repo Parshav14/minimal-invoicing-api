@@ -10,66 +10,81 @@ import {
 
 const router = express.Router();
 
-router.post("/invoices", async (req, res) => {
-  const { customerId, dueDate, items } = req.body;
+router.post("/invoices", async (req, res, next) => {
+  try {
+    const { customerId, dueDate, items } = req.body;
 
-  const invoice = await createInvoice({ customerId, dueDate, items });
+    const invoice = await createInvoice({ customerId, dueDate, items });
 
-  res.status(201).json(invoice);
-});
-
-router.get("/invoices/:id", async (req, res) => {
-  const invoice = await getInvoiceById(req.params.id);
-
-  if (!invoice) {
-    return res.status(404).json({
-      error: "NOT_FOUND",
-      message: "Invoice not found",
-    });
+    res.status(201).json(invoice);
+  } catch (error) {
+    next(error);
   }
-
-  res.status(200).json(invoice);
 });
 
-router.get("/invoices", async (req, res) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 20;
+router.get("/invoices/:id", async (req, res, next) => {
+  try {
+    const invoice = await getInvoiceById(req.params.id);
 
-  if (page < 1 || limit < 1 || limit > 100) {
-    return res.status(400).json({
-      error: "VALIDATION_ERROR",
-      message: "Invalid pagination parameters",
-    });
+    if (!invoice) {
+      return res.status(404).json({
+        error: "NOT_FOUND",
+        message: "Invoice not found",
+      });
+    }
+
+    res.status(200).json(invoice);
+  } catch (error) {
+    next(error);
   }
-
-  const status =
-    typeof req.query.status === "string" ? req.query.status : undefined;
-
-  const customerId =
-    typeof req.query.customerId === "string" ? req.query.customerId : undefined;
-
-  const from = typeof req.query.from === "string" ? req.query.from : undefined;
-
-  const to = typeof req.query.to === "string" ? req.query.to : undefined;
-
-  const { invoices, total } = await getInvoices(
-    page,
-    limit,
-    status as "DRAFT" | "ISSUED" | "PAID" | "CANCELLED" | undefined,
-    customerId,
-    from,
-    to,
-  );
-
-  res.status(200).json({
-    data: invoices,
-    page,
-    limit,
-    total,
-  });
 });
 
-router.patch("/invoices/:id", async (req, res) => {
+router.get("/invoices", async (req, res, next) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({
+        error: "VALIDATION_ERROR",
+        message: "Invalid pagination parameters",
+      });
+    }
+
+    const status =
+      typeof req.query.status === "string" ? req.query.status : undefined;
+
+    const customerId =
+      typeof req.query.customerId === "string"
+        ? req.query.customerId
+        : undefined;
+
+    const from =
+      typeof req.query.from === "string" ? req.query.from : undefined;
+
+    const to = typeof req.query.to === "string" ? req.query.to : undefined;
+
+    const { invoices, total } = await getInvoices(
+      page,
+      limit,
+      status as "DRAFT" | "ISSUED" | "PAID" | "CANCELLED" | undefined,
+      customerId,
+      from,
+      to,
+    );
+
+    res.status(200).json({
+      data: invoices,
+      page,
+      limit,
+      total,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/invoices/:id", async (req, res, next) => {
   try {
     const { dueDate, items } = req.body;
 
@@ -94,21 +109,11 @@ router.patch("/invoices/:id", async (req, res) => {
 
     res.status(200).json(invoice);
   } catch (error) {
-    if (error instanceof Error && error.message === "INVOICE_LOCKED") {
-      return res.status(409).json({
-        error: "INVOICE_LOCKED",
-        message: "Invoice can only be updated in DRAFT status",
-      });
-    }
-
-    return res.status(500).json({
-      error: "INTERNAL_ERROR",
-      message: "Something went wrong",
-    });
+    next(error);
   }
 });
 
-router.post("/invoices/:id/issue", async (req, res) => {
+router.post("/invoices/:id/issue", async (req, res, next) => {
   try {
     const invoice = await updateInvoiceStatus(req.params.id, "issue");
 
@@ -121,21 +126,11 @@ router.post("/invoices/:id/issue", async (req, res) => {
 
     res.status(200).json(invoice);
   } catch (error) {
-    if (error instanceof Error && error.message === "INVALID_TRANSITION") {
-      return res.status(409).json({
-        error: "INVALID_TRANSITION",
-        message: "Invalid invoice status transition",
-      });
-    }
-
-    res.status(500).json({
-      error: "INTERNAL_ERROR",
-      message: "Something went wrong",
-    });
+    next(error);
   }
 });
 
-router.post("/invoices/:id/pay", async (req, res) => {
+router.post("/invoices/:id/pay", async (req, res, next) => {
   try {
     const invoice = await updateInvoiceStatus(req.params.id, "pay");
 
@@ -148,21 +143,11 @@ router.post("/invoices/:id/pay", async (req, res) => {
 
     res.status(200).json(invoice);
   } catch (error) {
-    if (error instanceof Error && error.message === "INVALID_TRANSITION") {
-      return res.status(409).json({
-        error: "INVALID_TRANSITION",
-        message: "Invalid invoice status transition",
-      });
-    }
-
-    res.status(500).json({
-      error: "INTERNAL_ERROR",
-      message: "Something went wrong",
-    });
+    next(error);
   }
 });
 
-router.post("/invoices/:id/cancel", async (req, res) => {
+router.post("/invoices/:id/cancel", async (req, res, next) => {
   try {
     const invoice = await updateInvoiceStatus(req.params.id, "cancel");
 
@@ -175,21 +160,11 @@ router.post("/invoices/:id/cancel", async (req, res) => {
 
     res.status(200).json(invoice);
   } catch (error) {
-    if (error instanceof Error && error.message === "INVALID_TRANSITION") {
-      return res.status(409).json({
-        error: "INVALID_TRANSITION",
-        message: "Invalid invoice status transition",
-      });
-    }
-
-    res.status(500).json({
-      error: "INTERNAL_ERROR",
-      message: "Something went wrong",
-    });
+    next(error);
   }
 });
 
-router.delete("/invoices/:id", async (req, res) => {
+router.delete("/invoices/:id", async (req, res, next) => {
   try {
     const invoice = await deleteInvoice(req.params.id);
 
@@ -202,17 +177,7 @@ router.delete("/invoices/:id", async (req, res) => {
 
     res.status(204).send();
   } catch (error) {
-    if (error instanceof Error && error.message === "INVOICE_LOCKED") {
-      return res.status(409).json({
-        error: "INVOICE_LOCKED",
-        message: "Invoice can only be deleted in DRAFT status",
-      });
-    }
-
-    res.status(500).json({
-      error: "INTERNAL_ERROR",
-      message: "Something went wrong",
-    });
+    next(error);
   }
 });
 

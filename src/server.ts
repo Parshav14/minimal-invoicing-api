@@ -22,11 +22,15 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-app.use("/", (req, res) => {
-  res.send("Hello, Welcome to the Minimal Envoicing API server!");
+app.use("/", (_req, res) => {
+  res.status(404).json({
+    error: "NOT_FOUND",
+    message: "Resource not found",
+  });
 });
 
 app.use(errorHandler);
 
 const server = http.createServer(app);
-server.listen(3000);
+const port = Number(process.env.PORT) || 3000;
+server.listen(port);
