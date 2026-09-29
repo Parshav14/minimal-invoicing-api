@@ -1,4 +1,5 @@
 import express from "express";
+import { z } from "zod";
 import {
   createCustomer,
   getCustomerById,
@@ -8,10 +9,31 @@ import {
 
 const router = express.Router();
 
+const customerIdSchema = z.object({
+  id: z.uuid(),
+});
+
+const customerCreateSchema = z.object({
+  name: z.string().min(1),
+  email: z.email(),
+});
+
+const customerUpdateSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    email: z.email().optional(),
+  })
+  .refine((data) => data.name !== undefined || data.email !== undefined);
+
+const customerQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 router.post("/customers", async (req, res, next) => {
   try {
-    const { name, email } = req.body;
-    const customer = await createCustomer(name, email);
+    const body = customerCreateSchema.parse(req.body);
+    const customer = await createCustomer(body.name, body.email);
     res.status(201).json(customer);
   } catch (error) {
     next(error);
@@ -20,7 +42,8 @@ router.post("/customers", async (req, res, next) => {
 
 router.get("/customers/:id", async (req, res, next) => {
   try {
-    const customer = await getCustomerById(req.params.id);
+    const { id } = customerIdSchema.parse(req.params);
+    const customer = await getCustomerById(id);
 
     if (!customer) {
       return res.status(404).json({
@@ -37,16 +60,7 @@ router.get("/customers/:id", async (req, res, next) => {
 
 router.get("/customers", async (req, res, next) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
-
-    if (limit > 100 || limit < 1) {
-      return res.status(400).json({
-        error: "VALIDATION_ERROR",
-        message: "limit must be between 1 and 100",
-        details: [],
-      });
-    }
+    const { page, limit } = customerQuerySchema.parse(req.query);
 
     const { customers, total } = await getCustomers(page, limit);
 
@@ -63,9 +77,10 @@ router.get("/customers", async (req, res, next) => {
 
 router.patch("/customers/:id", async (req, res, next) => {
   try {
-    const { name, email } = req.body;
+    const { id } = customerIdSchema.parse(req.params);
+    const body = customerUpdateSchema.parse(req.body);
 
-    const customer = await updateCustomer(req.params.id, name, email);
+    const customer = await updateCustomer(id, body.name, body.email);
 
     res.status(200).json(customer);
   } catch (error) {

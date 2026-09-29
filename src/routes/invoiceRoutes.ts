@@ -1,4 +1,5 @@
 import express from "express";
+import { z } from "zod";
 import {
   createInvoice,
   getInvoiceById,
@@ -10,11 +11,46 @@ import {
 
 const router = express.Router();
 
+const invoiceIdSchema = z.object({
+  id: z.uuid(),
+});
+
+const dateSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(new Date(value).getTime()), "Invalid date");
+
+const invoiceItemSchema = z.object({
+  description: z.string().min(1),
+  quantity: z.number().int().min(1),
+  unitPriceCents: z.number().int().min(0),
+});
+
+const invoiceCreateSchema = z.object({
+  customerId: z.uuid(),
+  dueDate: dateSchema,
+  items: z.array(invoiceItemSchema).min(1),
+});
+
+const invoiceUpdateSchema = z
+  .object({
+    dueDate: dateSchema.optional(),
+    items: z.array(invoiceItemSchema).min(1).optional(),
+  })
+  .refine((data) => data.dueDate !== undefined || data.items !== undefined);
+
+const invoiceQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(["DRAFT", "ISSUED", "PAID", "CANCELLED"]).optional(),
+  customerId: z.uuid().optional(),
+  from: dateSchema.optional(),
+  to: dateSchema.optional(),
+});
+
 router.post("/invoices", async (req, res, next) => {
   try {
-    const { customerId, dueDate, items } = req.body;
-
-    const invoice = await createInvoice({ customerId, dueDate, items });
+    const body = invoiceCreateSchema.parse(req.body);
+    const invoice = await createInvoice(body);
 
     res.status(201).json(invoice);
   } catch (error) {
@@ -24,7 +60,8 @@ router.post("/invoices", async (req, res, next) => {
 
 router.get("/invoices/:id", async (req, res, next) => {
   try {
-    const invoice = await getInvoiceById(req.params.id);
+    const { id } = invoiceIdSchema.parse(req.params);
+    const invoice = await getInvoiceById(id);
 
     if (!invoice) {
       return res.status(404).json({
@@ -41,33 +78,13 @@ router.get("/invoices/:id", async (req, res, next) => {
 
 router.get("/invoices", async (req, res, next) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
-
-    if (page < 1 || limit < 1 || limit > 100) {
-      return res.status(400).json({
-        error: "VALIDATION_ERROR",
-        message: "Invalid pagination parameters",
-      });
-    }
-
-    const status =
-      typeof req.query.status === "string" ? req.query.status : undefined;
-
-    const customerId =
-      typeof req.query.customerId === "string"
-        ? req.query.customerId
-        : undefined;
-
-    const from =
-      typeof req.query.from === "string" ? req.query.from : undefined;
-
-    const to = typeof req.query.to === "string" ? req.query.to : undefined;
+    const { page, limit, status, customerId, from, to } =
+      invoiceQuerySchema.parse(req.query);
 
     const { invoices, total } = await getInvoices(
       page,
       limit,
-      status as "DRAFT" | "ISSUED" | "PAID" | "CANCELLED" | undefined,
+      status,
       customerId,
       from,
       to,
@@ -86,19 +103,15 @@ router.get("/invoices", async (req, res, next) => {
 
 router.patch("/invoices/:id", async (req, res, next) => {
   try {
-    const { dueDate, items } = req.body;
+    const { id } = invoiceIdSchema.parse(req.params);
+    const body = invoiceUpdateSchema.parse(req.body);
 
-    if (dueDate === undefined && items === undefined) {
-      return res.status(400).json({
-        error: "VALIDATION_ERROR",
-        message: "Provide dueDate or items",
-      });
-    }
+    const input = {
+      ...(body.dueDate !== undefined && { dueDate: body.dueDate }),
+      ...(body.items !== undefined && { items: body.items }),
+    };
 
-    const invoice = await updateInvoice(req.params.id, {
-      dueDate,
-      items,
-    });
+    const invoice = await updateInvoice(id, input);
 
     if (!invoice) {
       return res.status(404).json({
@@ -115,7 +128,8 @@ router.patch("/invoices/:id", async (req, res, next) => {
 
 router.post("/invoices/:id/issue", async (req, res, next) => {
   try {
-    const invoice = await updateInvoiceStatus(req.params.id, "issue");
+    const { id } = invoiceIdSchema.parse(req.params);
+    const invoice = await updateInvoiceStatus(id, "issue");
 
     if (!invoice) {
       return res.status(404).json({
@@ -132,7 +146,8 @@ router.post("/invoices/:id/issue", async (req, res, next) => {
 
 router.post("/invoices/:id/pay", async (req, res, next) => {
   try {
-    const invoice = await updateInvoiceStatus(req.params.id, "pay");
+    const { id } = invoiceIdSchema.parse(req.params);
+    const invoice = await updateInvoiceStatus(id, "pay");
 
     if (!invoice) {
       return res.status(404).json({
@@ -149,7 +164,8 @@ router.post("/invoices/:id/pay", async (req, res, next) => {
 
 router.post("/invoices/:id/cancel", async (req, res, next) => {
   try {
-    const invoice = await updateInvoiceStatus(req.params.id, "cancel");
+    const { id } = invoiceIdSchema.parse(req.params);
+    const invoice = await updateInvoiceStatus(id, "cancel");
 
     if (!invoice) {
       return res.status(404).json({
@@ -166,7 +182,8 @@ router.post("/invoices/:id/cancel", async (req, res, next) => {
 
 router.delete("/invoices/:id", async (req, res, next) => {
   try {
-    const invoice = await deleteInvoice(req.params.id);
+    const { id } = invoiceIdSchema.parse(req.params);
+    const invoice = await deleteInvoice(id);
 
     if (!invoice) {
       return res.status(404).json({
