@@ -5,6 +5,7 @@ import express from "express";
 import { prisma } from "./db.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import invoiceRoutes from "./routes/invoiceRoutes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/", (req, res) => {
   res.send("Hello, Welcome to the Minimal Envoicing API server!");
 });
 
-const server = http.createServer(app);
+app.use(errorHandler);
 
+const server = http.createServer(app);
 server.listen(3000);
