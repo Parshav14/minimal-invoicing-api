@@ -142,3 +142,72 @@ test("patch draft invoice and lock issued invoice", async () => {
   assert.equal(locked.status, 409);
   assert.equal(locked.body.error, "INVOICE_LOCKED");
 });
+
+test("invoice lifecycle works", async () => {
+  const create = await request(app)
+    .post("/invoices")
+    .send({
+      customerId,
+      dueDate: "2026-10-20",
+      items: [
+        {
+          description: "Laptop",
+          quantity: 1,
+          unitPriceCents: 50000,
+        },
+      ],
+    });
+
+  const issue = await request(app).post(`/invoices/${create.body.id}/issue`);
+
+  assert.equal(issue.status, 200);
+  assert.equal(issue.body.status, "ISSUED");
+  assert.ok(issue.body.issueDate);
+
+  const pay = await request(app).post(`/invoices/${create.body.id}/pay`);
+
+  assert.equal(pay.status, 200);
+  assert.equal(pay.body.status, "PAID");
+
+  const cancelCreate = await request(app)
+    .post("/invoices")
+    .send({
+      customerId,
+      dueDate: "2026-10-20",
+      items: [
+        {
+          description: "Mouse",
+          quantity: 1,
+          unitPriceCents: 2000,
+        },
+      ],
+    });
+
+  const cancel = await request(app).post(
+    `/invoices/${cancelCreate.body.id}/cancel`,
+  );
+
+  assert.equal(cancel.status, 200);
+  assert.equal(cancel.body.status, "CANCELLED");
+
+  const invalidCreate = await request(app)
+    .post("/invoices")
+    .send({
+      customerId,
+      dueDate: "2026-10-20",
+      items: [
+        {
+          description: "Keyboard",
+          quantity: 1,
+          unitPriceCents: 3000,
+        },
+      ],
+    });
+
+  const invalid = await request(app).post(
+    `/invoices/${invalidCreate.body.id}/pay`,
+  );
+
+  assert.equal(invalid.status, 409);
+  assert.equal(invalid.body.error, "INVALID_TRANSITION");
+});
