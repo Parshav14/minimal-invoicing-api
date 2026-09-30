@@ -10,7 +10,7 @@
     "dev": "tsx --watch src/server.ts",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "lint": "eslint src tests prisma7.config.ts"
+    "lint": "eslint src"
   },
   "repository": {
     "type": "git",
