@@ -79,3 +79,25 @@ test("invoice list supports filters and pagination", async () => {
   assert.equal(bad.body.error, "VALIDATION_ERROR");
 });
 
+test("get invoice returns items and customer", async () => {
+  const create = await request(app)
+    .post("/invoices")
+    .send({
+      customerId,
+      dueDate: "2026-10-20",
+      items: [
+        {
+          description: "Laptop",
+          quantity: 1,
+          unitPriceCents: 50000,
+        },
+      ],
+    });
+
+  const response = await request(app).get(`/invoices/${create.body.id}`);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.invoiceitem.length, 1);
+  assert.equal(response.body.customer.id, customerId);
+});
+
