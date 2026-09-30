@@ -252,7 +252,7 @@ export const deleteInvoice = async (id: string) => {
     throw new Error("INVOICE_LOCKED");
   }
 
-  await prisma.invoice.delete({
+  return prisma.invoice.delete({
     where: { id },
   });
 };

@@ -224,3 +224,53 @@ test("invoice validation rejects empty items", async () => {
   assert.ok(Array.isArray(response.body.details));
 });
 
+test("delete draft invoice and lock issued invoice", async () => {
+  const draft = await request(app)
+    .post("/invoices")
+    .send({
+      customerId,
+      dueDate: "2026-10-20",
+      items: [
+        {
+          description: "Mouse",
+          quantity: 1,
+          unitPriceCents: 2000,
+        },
+      ],
+    });
+
+  assert.equal(draft.status, 201);
+  assert.ok(draft.body.id);
+
+  const exists = await prisma.invoice.findUnique({
+    where: { id: draft.body.id },
+  });
+
+  assert.ok(exists);
+
+  const deleted = await request(app).delete(`/invoices/${draft.body.id}`);
+
+  assert.equal(deleted.status, 204);
+
+  const issued = await request(app)
+    .post("/invoices")
+    .send({
+      customerId,
+      dueDate: "2026-10-20",
+      items: [
+        {
+          description: "Laptop",
+          quantity: 1,
+          unitPriceCents: 50000,
+        },
+      ],
+    });
+
+  await request(app).post(`/invoices/${issued.body.id}/issue`);
+
+  const locked = await request(app).delete(`/invoices/${issued.body.id}`);
+
+  assert.equal(locked.status, 409);
+  assert.equal(locked.body.error, "INVOICE_LOCKED");
+});
+

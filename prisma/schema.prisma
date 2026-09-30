@@ -50,6 +50,6 @@ model InvoiceItem {
   quantity Int
   unitPriceCents Int
 
-  invoice Invoice @relation (fields: [invoiceId], references: [id])
+  invoice Invoice @relation (fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
