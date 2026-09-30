@@ -211,3 +211,16 @@ test("invoice lifecycle works", async () => {
   assert.equal(invalid.status, 409);
   assert.equal(invalid.body.error, "INVALID_TRANSITION");
 });
+
+test("invoice validation rejects empty items", async () => {
+  const response = await request(app).post("/invoices").send({
+    customerId,
+    dueDate: "2026-10-20",
+    items: [],
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal(response.body.error, "VALIDATION_ERROR");
+  assert.ok(Array.isArray(response.body.details));
+});
+
