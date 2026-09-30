@@ -4,13 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --env-file=.env.test --import tsx --test",
+    "test": "node --env-file=.env.test --import tsx --test tests/*.test.ts",
     "build": "tsc --outDir dist",
     "start": "node dist/src/server.js",
     "dev": "tsx --watch src/server.ts",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "lint": "eslint ."
+    "lint": "eslint src tests prisma7.config.ts"
   },
   "repository": {
     "type": "git",
