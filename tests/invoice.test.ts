@@ -274,3 +274,26 @@ test("delete draft invoice and lock issued invoice", async () => {
   assert.equal(locked.body.error, "INVOICE_LOCKED");
 });
 
+test("failed invoice creation leaves no invoice row", async () => {
+  const before = await prisma.invoice.count();
+
+  const response = await request(app)
+    .post("/invoices")
+    .send({
+      customerId: "11111111-1111-4111-8111-111111111111",
+      dueDate: "2026-10-20",
+      items: [
+        {
+          description: "Laptop",
+          quantity: 1,
+          unitPriceCents: 50000,
+        },
+      ],
+    });
+
+  assert.equal(response.status, 404);
+
+  const after = await prisma.invoice.count();
+
+  assert.equal(after, before);
+});
