@@ -101,3 +101,44 @@ test("get invoice returns items and customer", async () => {
   assert.equal(response.body.customer.id, customerId);
 });
 
+test("patch draft invoice and lock issued invoice", async () => {
+  const create = await request(app)
+    .post("/invoices")
+    .send({
+      customerId,
+      dueDate: "2026-10-20",
+      items: [
+        {
+          description: "Laptop",
+          quantity: 1,
+          unitPriceCents: 50000,
+        },
+      ],
+    });
+
+  const update = await request(app)
+    .patch(`/invoices/${create.body.id}`)
+    .send({
+      dueDate: "2026-11-01",
+      items: [
+        {
+          description: "Monitor",
+          quantity: 2,
+          unitPriceCents: 30000,
+        },
+      ],
+    });
+
+  assert.equal(update.status, 200);
+  assert.equal(update.body.totalCents, 60000);
+  assert.equal(update.body.invoiceitem.length, 1);
+
+  await request(app).post(`/invoices/${create.body.id}/issue`);
+
+  const locked = await request(app).patch(`/invoices/${create.body.id}`).send({
+    dueDate: "2026-12-01",
+  });
+
+  assert.equal(locked.status, 409);
+  assert.equal(locked.body.error, "INVOICE_LOCKED");
+});
