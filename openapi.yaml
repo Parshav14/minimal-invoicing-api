@@ -1,0 +1,108 @@
+openapi: 3.0.3
+
+info:
+  title: Minimal Invoicing API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /health:
+    get:
+      summary: Check API health
+      responses:
+        "200":
+          description: API is healthy
+        "503":
+          description: Database is unavailable
+
+  /customers:
+    post:
+      summary: Create customer
+      responses:
+        "201":
+          description: Customer created
+        "409":
+          description: Email already exists
+    get:
+      summary: List customers
+      responses:
+        "200":
+          description: Customer list
+
+  /customers/{id}:
+    get:
+      summary: Get customer
+      responses:
+        "200":
+          description: Customer found
+        "404":
+          description: Customer not found
+    patch:
+      summary: Update customer
+      responses:
+        "200":
+          description: Customer updated
+        "404":
+          description: Customer not found
+        "409":
+          description: Email already exists
+
+  /invoices:
+    post:
+      summary: Create invoice
+      responses:
+        "201":
+          description: Invoice created
+        "400":
+          description: Invalid input
+    get:
+      summary: List invoices
+      responses:
+        "200":
+          description: Invoice list
+
+  /invoices/{id}:
+    get:
+      summary: Get invoice
+      responses:
+        "200":
+          description: Invoice found
+        "404":
+          description: Invoice not found
+    patch:
+      summary: Update draft invoice
+      responses:
+        "200":
+          description: Invoice updated
+        "409":
+          description: Invoice locked
+    delete:
+      summary: Delete draft invoice
+      responses:
+        "204":
+          description: Invoice deleted
+        "409":
+          description: Invoice locked
+
+  /invoices/{id}/issue:
+    post:
+      summary: Issue invoice
+      responses:
+        "200":
+          description: Invoice issued
+
+  /invoices/{id}/pay:
+    post:
+      summary: Pay invoice
+      responses:
+        "200":
+          description: Invoice paid
+
+  /invoices/{id}/cancel:
+    post:
+      summary: Cancel invoice
+      responses:
+        "200":
+          description: Invoice cancelled
